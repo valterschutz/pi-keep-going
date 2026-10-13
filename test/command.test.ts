@@ -38,6 +38,19 @@ describe("parseKgCommand", () => {
     });
   });
 
+  it("accepts spaced and spelled-out durations like /in", () => {
+    expect(parseKgCommand("2 hours", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 7200,
+      message: "keep going",
+    });
+    expect(parseKgCommand("20 min run the tests", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 1200,
+      message: "run the tests",
+    });
+  });
+
   it("is case-insensitive for the subcommand token", () => {
     expect(parseKgCommand("LIST", DEFAULT)).toEqual({ kind: "list" });
     expect(parseKgCommand("Auto go", DEFAULT)).toEqual({ kind: "auto", message: "go" });

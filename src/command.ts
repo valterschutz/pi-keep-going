@@ -35,14 +35,36 @@ export function parseKgCommand(args: string, defaultMessage: string): KgCommand 
       return { kind: "auto", message };
   }
 
-  const seconds = parseDuration(first);
-  if (seconds === null) {
+  const taken = takeDuration([first, ...rest]);
+  if (taken === null) {
     return {
       kind: "error",
       reason: `Invalid duration "${first}". Use e.g. 40m, 2h30m, 90s, or "auto".`,
     };
   }
-  return { kind: "schedule", seconds, message };
+  return { kind: "schedule", seconds: taken.seconds, message: taken.rest || defaultMessage };
+}
+
+/**
+ * Consume the longest leading run of tokens that forms a valid duration
+ * (`20min`, `20 min`, `1 hour 30 minutes`). Returns the seconds and the
+ * remaining tokens joined as a message, or `null` if no prefix parses.
+ */
+function takeDuration(tokens: string[]): { seconds: number; rest: string } | null {
+  let seconds: number | null = null;
+  let consumed = 0;
+  for (let n = 1; n <= tokens.length; n += 1) {
+    const candidate = parseDuration(tokens.slice(0, n).join(" "));
+    if (candidate === null) {
+      // A bare trailing number may still be completed by the next token.
+      if (/^\d+$/.test(tokens[n - 1]) && n < tokens.length) continue;
+      break;
+    }
+    seconds = candidate;
+    consumed = n;
+  }
+  if (seconds === null) return null;
+  return { seconds, rest: tokens.slice(consumed).join(" ").trim() };
 }
 
 /** Parsed `/in` command, decoupled from any Pi context for unit testing. */
@@ -67,27 +89,14 @@ export function parseInCommand(args: string, defaultMessage: string): InCommand 
   const tokens = trimmed.split(/\s+/);
   if (tokens[0].toLowerCase() === "help") return { kind: "help" };
 
-  let seconds: number | null = null;
-  let consumed = 0;
-  for (let n = 1; n <= tokens.length; n += 1) {
-    const candidate = parseDuration(tokens.slice(0, n).join(" "));
-    if (candidate === null) {
-      // A bare trailing number may still be completed by the next token.
-      if (/^\d+$/.test(tokens[n - 1]) && n < tokens.length) continue;
-      break;
-    }
-    seconds = candidate;
-    consumed = n;
-  }
-
-  if (seconds === null) {
+  const taken = takeDuration(tokens);
+  if (taken === null) {
     return {
       kind: "error",
       reason: `Invalid duration "${tokens[0]}". Use e.g. 20min, 40m, 2h30m, or 90s.`,
     };
   }
-  const message = tokens.slice(consumed).join(" ").trim() || defaultMessage;
-  return { kind: "schedule", seconds, message };
+  return { kind: "schedule", seconds: taken.seconds, message: taken.rest || defaultMessage };
 }
 
 /** Parsed `/at` command, decoupled from any Pi context for unit testing. */
