@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseAtCommand, parseKgCommand } from "../src/command";
+import { parseAtCommand, parseInCommand, parseKgCommand } from "../src/command";
 
 const DEFAULT = "keep going";
 
@@ -48,6 +48,53 @@ describe("parseKgCommand", () => {
     expect(result.kind).toBe("error");
     expect(result).toMatchObject({ kind: "error" });
     if (result.kind === "error") expect(result.reason).toContain("xyz");
+  });
+});
+
+describe("parseInCommand", () => {
+  it("treats empty input and help as help", () => {
+    expect(parseInCommand("", DEFAULT)).toEqual({ kind: "help" });
+    expect(parseInCommand("help", DEFAULT)).toEqual({ kind: "help" });
+  });
+
+  it("schedules compact and spelled-out durations", () => {
+    expect(parseInCommand("20min", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 1200,
+      message: "keep going",
+    });
+    expect(parseInCommand("20m run the tests", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 1200,
+      message: "run the tests",
+    });
+    expect(parseInCommand("2h30m finish it", DEFAULT)).toMatchObject({ seconds: 9000, message: "finish it" });
+  });
+
+  it("consumes a multi-token duration before the message", () => {
+    expect(parseInCommand("20 min run the tests", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 1200,
+      message: "run the tests",
+    });
+    expect(parseInCommand("1 hour 30 minutes ship it", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 5400,
+      message: "ship it",
+    });
+    // A message starting with a number is not swallowed into the duration.
+    expect(parseInCommand("10m 3 tests failed, fix them", DEFAULT)).toEqual({
+      kind: "schedule",
+      seconds: 600,
+      message: "3 tests failed, fix them",
+    });
+  });
+
+  it("returns an error for an invalid duration", () => {
+    expect(parseInCommand("20:00 go", DEFAULT)).toMatchObject({ kind: "error" });
+    expect(parseInCommand("20 go", DEFAULT)).toMatchObject({ kind: "error" });
+    const result = parseInCommand("soon", DEFAULT);
+    if (result.kind === "error") expect(result.reason).toContain("soon");
   });
 });
 

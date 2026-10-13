@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clock time, rolling to tomorrow when the time has already passed today. Uses
   the same scheduler as `/kg`, so `/kg list`, `/kg cancel`, and the countdown
   widget cover both.
+- `/in <duration> [message]` schedules a one-shot follow-up after a delay, like
+  `/kg <duration>`. Durations now also accept long unit spellings and spaces
+  (`20min`, `20 min`, `1 hour 30 minutes`), in `/kg` too.
 
 ## [1.1.0] — 2026-08-28
 

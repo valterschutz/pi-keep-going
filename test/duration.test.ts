@@ -20,8 +20,19 @@ describe("parseDuration", () => {
     expect(parseDuration("  2H30M  ")).toBe(9000);
   });
 
+  it("accepts long unit spellings and internal spaces", () => {
+    expect(parseDuration("20min")).toBe(1200);
+    expect(parseDuration("20 min")).toBe(1200);
+    expect(parseDuration("20mins")).toBe(1200);
+    expect(parseDuration("2 hours")).toBe(7200);
+    expect(parseDuration("1hr30min")).toBe(5400);
+    expect(parseDuration("1 hour 30 minutes")).toBe(5400);
+    expect(parseDuration("90sec")).toBe(90);
+    expect(parseDuration("2 days")).toBe(172_800);
+  });
+
   it("rejects empty, unit-less, malformed, and non-positive input", () => {
-    for (const bad of ["", "   ", "40", "40x", "m5", "1h2h", "1s30m", "-5m", "0s", "abc"]) {
+    for (const bad of ["", "   ", "40", "40x", "m5", "1h2h", "1s30m", "-5m", "0s", "abc", "20minx", "20 minutes ago"]) {
       expect(parseDuration(bad)).toBeNull();
     }
   });
