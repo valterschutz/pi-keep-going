@@ -4,7 +4,7 @@
 
 **Fire time** — The instant a scheduled message is submitted. Fixed when the message is created.
 
-**Duration** — A relative delay such as `40m` or `2h30m`. The `/kg` way of expressing a fire time.
+**Duration** — A relative delay such as `40m`, `20min`, or `2h30m`. The `/kg` and `/in` way of expressing a fire time.
 
 **Clock time** — A local wall-clock time such as `20:00`. The `/at` way of expressing a fire time. Resolves to today if still ahead, otherwise tomorrow.
 

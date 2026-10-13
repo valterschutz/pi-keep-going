@@ -14,7 +14,7 @@ import { renderWidgetLines } from "./widget";
 import { pickCompanion, type CompanionStyle } from "./anim";
 import { detectColorMode, type ColorMode } from "./sprite";
 import { humanizeDuration } from "./duration";
-import { parseAtCommand, parseKgCommand } from "./command";
+import { parseAtCommand, parseInCommand, parseKgCommand } from "./command";
 import { formatClockTime, isOnLaterDay, resolveClockTime } from "./clock-time";
 import { detectUsageLimit, providerFamily, type Cached429, type ProviderFamily } from "./limits/detect";
 import type { ResetInfo } from "./limits/types";
@@ -37,7 +37,7 @@ import { defaultLeaseIO, leasePath, refreshLease, type LeaseRole } from "./lease
 /**
  * pi-keep-going — thin adapter wiring the pure scheduler/detect/guards/settings
  * modules to a live Pi session. The `/kg` command schedules one-shot follow-ups
- * after a duration, `/at` schedules them at a clock time; on a settled
+ * after a duration (as does `/in`), `/at` schedules them at a clock time; on a settled
  * usage-limit error the extension auto-resumes at the reset time.
  */
 
@@ -291,6 +291,45 @@ export default function (pi: ExtensionAPI): void {
       await runCommand(args, commandCtx);
     },
   });
+
+  pi.registerCommand("in", {
+    description:
+      "Schedule a one-shot follow-up message after a delay (/in 20min run the tests). Manage with /kg list and /kg cancel.",
+    handler: async (args, commandCtx) => {
+      ctx = commandCtx;
+      if (!scheduler) {
+        scheduler = createScheduler();
+        scheduler.start();
+      }
+      runInCommand(args, commandCtx);
+    },
+  });
+
+  function runInCommand(args: string, c: ExtensionContext): void {
+    const sched = scheduler;
+    if (!sched) return;
+    const command = parseInCommand(args, settings.defaultMessage);
+
+    switch (command.kind) {
+      case "help":
+        c.ui.notify("Usage: /in <20min|40m|2h30m|90s> [message].", "info");
+        return;
+
+      case "error":
+        c.ui.notify(command.reason, "error");
+        return;
+
+      case "schedule": {
+        const fireAt = Date.now() + command.seconds * 1000;
+        const job = sched.add({ fireAt, message: command.message, kind: "manual" });
+        c.ui.notify(
+          `Scheduled "${job.message}" in ${humanizeDuration(command.seconds)} (${clock(fireAt)}).`,
+          "info",
+        );
+        return;
+      }
+    }
+  }
 
   pi.registerCommand("at", {
     description:

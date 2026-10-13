@@ -56,6 +56,19 @@ pi install ./pi-keep-going
 | `/kg cancel` | Cancel a scheduled message (prompts when several are pending). |
 | `/kg help` | Show usage. A bare `/kg` does the same. |
 
+## `/in` command
+
+The same as `/kg <duration>`, with a friendlier name and looser unit spelling.
+
+| Command | Effect |
+| --- | --- |
+| `/in 20min run the tests` | Send `run the tests` after 20 minutes. |
+| `/in 20 min` | Spaces between number and unit are fine; sends the default message. |
+| `/in 1 hour 30 minutes ship it` | Long unit names work: `sec`, `min`, `hr`, `hour`, `day`, with or without `s`. |
+| `/in help` | Show usage. A bare `/in` does the same. |
+
+The same spellings are accepted by `/kg`.
+
 ## `/at` command
 
 The same one-shot scheduling, but at a clock time instead of after a duration.
