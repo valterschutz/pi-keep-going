@@ -56,6 +56,22 @@ pi install ./pi-keep-going
 | `/kg cancel` | Cancel a scheduled message (prompts when several are pending). |
 | `/kg help` | Show usage. A bare `/kg` does the same. |
 
+## `/at` command
+
+The same one-shot scheduling, but at a clock time instead of after a duration.
+
+| Command | Effect |
+| --- | --- |
+| `/at 20:00 run the tests` | Send `run the tests` at 20:00 local time. |
+| `/at 20.00` | A dot works as the separator; sends the default message. |
+| `/at 8 ship it` | A bare hour means `08:00`. |
+| `/at help` | Show usage. A bare `/at` does the same. |
+
+A time that has already passed today is scheduled for tomorrow, and the
+confirmation says so. There is no date, am/pm, or timezone syntax. Jobs created
+with `/at` show up in `/kg list`, `/kg cancel`, and the countdown widget like
+any other.
+
 Scheduled jobs are persisted per branch, so they survive `/tree`, `/fork`, and
 reload. Timers use an absolute fire timestamp checked on a 30s tick, so a job
 still fires correctly after the machine sleeps. Nothing enters the LLM context

@@ -14,7 +14,8 @@ import { renderWidgetLines } from "./widget";
 import { pickCompanion, type CompanionStyle } from "./anim";
 import { detectColorMode, type ColorMode } from "./sprite";
 import { humanizeDuration } from "./duration";
-import { parseKgCommand } from "./command";
+import { parseAtCommand, parseKgCommand } from "./command";
+import { formatClockTime, isOnLaterDay, resolveClockTime } from "./clock-time";
 import { detectUsageLimit, providerFamily, type Cached429, type ProviderFamily } from "./limits/detect";
 import type { ResetInfo } from "./limits/types";
 import { decideAutoResume, type AutoResumeState } from "./guards";
@@ -35,8 +36,9 @@ import { defaultLeaseIO, leasePath, refreshLease, type LeaseRole } from "./lease
 
 /**
  * pi-keep-going — thin adapter wiring the pure scheduler/detect/guards/settings
- * modules to a live Pi session. The `/kg` command schedules one-shot follow-ups;
- * on a settled usage-limit error the extension auto-resumes at the reset time.
+ * modules to a live Pi session. The `/kg` command schedules one-shot follow-ups
+ * after a duration, `/at` schedules them at a clock time; on a settled
+ * usage-limit error the extension auto-resumes at the reset time.
  */
 
 const WIDGET_ID = "keep-going";
@@ -289,6 +291,47 @@ export default function (pi: ExtensionAPI): void {
       await runCommand(args, commandCtx);
     },
   });
+
+  pi.registerCommand("at", {
+    description:
+      "Schedule a one-shot follow-up message at a clock time (/at 20:00 run the tests). Manage with /kg list and /kg cancel.",
+    handler: async (args, commandCtx) => {
+      ctx = commandCtx;
+      if (!scheduler) {
+        scheduler = createScheduler();
+        scheduler.start();
+      }
+      runAtCommand(args, commandCtx);
+    },
+  });
+
+  function runAtCommand(args: string, c: ExtensionContext): void {
+    const sched = scheduler;
+    if (!sched) return;
+    const command = parseAtCommand(args, settings.defaultMessage);
+
+    switch (command.kind) {
+      case "help":
+        c.ui.notify("Usage: /at <20:00|20.00|20> [message]. A time already past today fires tomorrow.", "info");
+        return;
+
+      case "error":
+        c.ui.notify(command.reason, "error");
+        return;
+
+      case "schedule": {
+        const now = Date.now();
+        const fireAt = resolveClockTime(command.time, now);
+        const job = sched.add({ fireAt, message: command.message, kind: "manual" });
+        const day = isOnLaterDay(fireAt, now) ? "tomorrow " : "";
+        c.ui.notify(
+          `Scheduled "${job.message}" at ${day}${formatClockTime(command.time)} (in ${remaining(fireAt)}).`,
+          "info",
+        );
+        return;
+      }
+    }
+  }
 
   async function runCommand(args: string, c: ExtensionContext): Promise<void> {
     const sched = scheduler;
